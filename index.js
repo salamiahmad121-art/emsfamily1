@@ -707,6 +707,124 @@ client.on('interactionCreate', async (interaction) => {
             content: `✅ تم الانتهاء من عملية الإرسال!\n\n• **تم الإرسال بنجاح إلى:** \`${successCount}\` عضو.\n• **تعذر الإرسال إلى (الخاص مغلق):** \`${failCount}\` عضو.`
         });
     }
+    const {
+    ActivityType,
+    GatewayIntentBits,
+    Client,
+    Events,
+    MessageFlags,
+    ContainerBuilder,
+    SeparatorSpacingSize,
+    MediaGalleryItemBuilder
+} = require('discord.js');
+const config = require('./config.json');
+
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildInvites
+    ]
+});
+
+function isMainGuild(guildId) {
+    if (!config.guildId) return true;
+    return guildId === config.guildId;
+}
+
+function ltrEmbedMention(snippet) {
+    if (snippet == null || snippet === '') return '—';
+    return `\u200E${String(snippet)}\u200E`;
+}
+
+const guildInvites = new Map();
+
+client.once(Events.ClientReady, (c) => {
+    c.user.setActivity(String(config.activity?.name || '🧡 | Prime Core | 2026'), {
+        type: ActivityType.Streaming,
+        url: 'https://twitch.tv/3acommunity'
+    });
+    console.log(`[Welcome] Logged in as ${c.user.tag}`);
+});
+
+client.on('ready', async () => {
+    for (const guild of client.guilds.cache.values()) {
+        try {
+            const firstInvites = await guild.invites.fetch();
+            guildInvites.set(guild.id, new Map(firstInvites.map((invite) => [invite.code, invite.uses])));
+        } catch (_) {}
+    }
+});
+
+client.on('inviteCreate', (invite) => {
+    const invites = guildInvites.get(invite.guild.id);
+    if (invites) invites.set(invite.code, invite.uses);
+});
+
+client.on('guildMemberAdd', async member => {
+    if (!config.welcome || !isMainGuild(member.guild.id)) return;
+    const channel = member.guild.channels.cache.get(config.welcome.RoomWelcome);
+    if (!channel) return;
+
+    const memberNumber = member.guild.memberCount;
+    let inviterTag = `<@${member.guild.ownerId}>`;
+
+    try {
+        const newInvites = await member.guild.invites.fetch();
+        const oldInvites = guildInvites.get(member.guild.id) || new Map();
+        const invite = newInvites.find(i => i.uses > (oldInvites.get(i.code) || 0));
+        if (invite?.inviter?.id) inviterTag = `<@${invite.inviter.id}>`;
+        guildInvites.set(member.guild.id, new Map(newInvites.map((inv) => [inv.code, inv.uses])));
+    } catch (_) {}
+
+    const createdAtUnix = Math.floor(member.user.createdTimestamp / 1000);
+    const joinedAtUnix = Math.floor(member.joinedTimestamp / 1000);
+    const welcomeTitle = config.welcome.TitleWelcome || `Welcome To ${member.guild.name}`;
+    const poweredName = String(welcomeTitle).replace(/^welcome\s*to\s*/i, '').trim() || member.guild.name;
+    const memberAvatar = member.user.displayAvatarURL({ dynamic: true, size: 256 });
+    const bannerUrl = String(config.banner || '').trim();
+    const safeBanner = /^https?:\/\//i.test(bannerUrl) ? bannerUrl : '';
+    const accentColorRaw = String(config.welcome.setcolor || '#4cadd0').replace('#', '');
+    const accentColor = /^[0-9a-fA-F]{6}$/.test(accentColorRaw) ? parseInt(accentColorRaw, 16) : 0x4cadd0;
+
+    const welcomeContainer = new ContainerBuilder()
+        .setAccentColor(accentColor)
+        .addSectionComponents((section) =>
+            section
+                .addTextDisplayComponents((text) =>
+                    text.setContent(`## ${welcomeTitle}\n### ${member.user.displayName || member.user.username}`)
+                )
+                .setThumbnailAccessory((img) => img.setURL(memberAvatar))
+        )
+        .addSeparatorComponents((s) => s.setDivider(true).setSpacing(SeparatorSpacingSize.Small))
+        .addTextDisplayComponents((t) =>
+            t.setContent(
+                [
+                    `**Member :** ${ltrEmbedMention(`<@${member.id}>`)}   |   **Create Discord :** <t:${createdAtUnix}:R>`,
+                    `**Members :**\u200E ${memberNumber}   |   **Joined Server :** <t:${joinedAtUnix}:R>`,
+                    `**Invited By :**\u200E ${ltrEmbedMention(inviterTag)}`
+                ].join('\n\n')
+            )
+        );
+
+    if (safeBanner) {
+        welcomeContainer.addMediaGalleryComponents((media) =>
+            media.addItems(new MediaGalleryItemBuilder().setURL(safeBanner).setDescription('welcome-banner'))
+        );
+    }
+
+    welcomeContainer
+        .addSeparatorComponents((s) => s.setDivider(true).setSpacing(SeparatorSpacingSize.Small))
+        .addTextDisplayComponents((t) =>
+            t.setContent(`Powered by ${poweredName}• Today at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`)
+        );
+
+    channel.send({
+        components: [welcomeContainer],
+        flags: MessageFlags.IsComponentsV2,
+        allowedMentions: { users: [member.id], roles: [], repliedUser: false }
+    }).catch(() => {});
+});
 });
 require('dotenv').config();
 
