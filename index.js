@@ -45,7 +45,7 @@ client.on('messageCreate', async (message) => {
     if (message.author.bot || message.author.id !== '612634852000530465') return;
 
     // 1. بانل التكت
-    if (message.content === '!setup-tickets') {
+    if (message.content === '!setuptickets') {
         const embed = new EmbedBuilder()
             .setTitle(config.texts.ticket_title)
             .setDescription(config.texts.ticket_desc)
