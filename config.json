@@ -48,6 +48,16 @@
       "label": "تقديم شكوى",
       "emoji": "🩺",
       "description": "للإبلاغ عن مخالفة أو لاعب"
-    }
+    },
+  "guildId": "1549857919204458606",
+  "banner": "https://media.discordapp.net/attachments/1549920350358474772/1549925012822302792/wlc.png",
+  "activity": {
+    "name": "EMS family"
+  },
+  "welcome": {
+    "RoomWelcome": "1549878915802079303",
+    "TitleWelcome": "Welcome To EMS family",
+    "setcolor": "#093a5b"
+  }
   }
 }
