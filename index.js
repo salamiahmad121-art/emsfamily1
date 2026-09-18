@@ -45,7 +45,7 @@ client.on('messageCreate', async (message) => {
     if (message.author.bot || message.author.id !== '612634852000530465') return;
 
     // 1. بانل التكت
-    if (message.content === '!setuptickets') {
+    if (message.content === '!setup-tickets') {
         const embed = new EmbedBuilder()
             .setTitle(config.texts.ticket_title)
             .setDescription(config.texts.ticket_desc)
@@ -824,7 +824,6 @@ client.on('guildMemberAdd', async member => {
         flags: MessageFlags.IsComponentsV2,
         allowedMentions: { users: [member.id], roles: [], repliedUser: false }
     }).catch(() => {});
-});
 });
 require('dotenv').config();
 
